@@ -1,31 +1,183 @@
 ﻿<Window x:Class="PaintBox.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PaintBox – Лаба 1" Height="450" Width="800">
-    <DockPanel>
-        <!-- Верхняя панель с кнопками -->
-        <StackPanel Orientation="Horizontal"
-                    DockPanel.Dock="Top"
-                    Background="#EEE"
-                    HorizontalAlignment="Left"
-                    Margin="0,0,0,5">
-            <Button Name="BtnLine" Content="Line" Margin="5" Width="80" Height="30"
-                    Click="BtnLine_Click"/>
-            <Button Name="BtnRectangle" Content="Rectangle" Margin="5" Width="80" Height="30"
-                    Click="BtnRectangle_Click"/>
-            <Button Name="BtnEllipse" Content="Ellipse" Margin="5" Width="80" Height="30"
-                    Click="BtnEllipse_Click"/>
-            <Button Name="BtnPolygon" Content="Polygon" Margin="5" Width="80" Height="30"
-                    Click="BtnPolygon_Click"/>
-            <!-- ДОБАВЛЯЕМ кнопку Polyline -->
-            <Button Name="BtnPolyline" Content="Polyline" Margin="5" Width="80" Height="30"
-                    Click="BtnPolyline_Click"/>
-        </StackPanel>
+        xmlns:local="clr-namespace:PaintBox"
+        Title="PaintBox – Лаба 2"
+        Width="1100" Height="650"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#F0F0F0"
+        FontFamily="Segoe UI"
+        FontSize="14" Icon="/icon1.png">
 
-        <!-- Область рисования -->
-        <Canvas Name="DrawingCanvas"
+    <!-- =================== РЕСУРСЫ ОКНА =================== -->
+    <Window.Resources>
+        <!-- Конвертер из имени цвета (string) в Brush -->
+        <local:ColorNameToBrushConverter x:Key="ColorNameToBrushConverter"/>
+
+        <!-- DataTemplate для списка цветов: 
+             ▓ название цвета (текст) -->
+        <DataTemplate x:Key="ColorItemTemplate">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Маленький квадратик 16×16, заполненный нужным цветом -->
+                <Rectangle Width="16" Height="16"
+                           Fill="{Binding Converter={StaticResource ColorNameToBrushConverter}}"
+                           Stroke="Black"
+                           StrokeThickness="0.5"
+                           Margin="0,0,4,0"/>
+                <TextBlock Text="{Binding}" 
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+
+    <DockPanel>
+
+        <!-- =================== TOOLBAR =================== -->
+        <ToolBarTray DockPanel.Dock="Top"
+                      Background="#DDD"
+                      IsLocked="True">
+            <ToolBar Background="#EEE"
+                     Padding="5"
+                     Margin="0,0,0,2">
+
+                <!-- ====== Выбор типа фигуры ====== -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Фигура:"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+                    <ComboBox Name="ComboShapes"
+                              Width="140"
+                              VerticalAlignment="Center"
+                              Margin="0,0,12,0"/>
+                </StackPanel>
+
+                <!-- ====== Толщина линии ====== -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="0,0,12,0">
+                    <TextBlock Text="Толщина:"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+                    <Slider Name="SliderThickness"
+                            Width="100"
+                            VerticalAlignment="Center"
+                            Minimum="1"
+                            Maximum="10"
+                            Value="2"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"/>
+                    <!-- Отображаем текущее значение толщины -->
+                    <TextBlock Text="{Binding ElementName=SliderThickness, Path=Value}"
+                               Width="24"
+                               VerticalAlignment="Center"
+                               TextAlignment="Center"
+                               Margin="4,0,0,0"/>
+                </StackPanel>
+
+                <!-- ====== Цвет обводки ====== -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="0,0,12,0">
+                    <TextBlock Text="Контур:"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+                    <ComboBox Name="ComboStrokeColor"
+                              Width="120"
+                              VerticalAlignment="Center"
+                              ItemTemplate="{StaticResource ColorItemTemplate}"
+                              Margin="0,0,0,0"/>
+                </StackPanel>
+
+                <!-- ====== Цвет заливки ====== -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="0,0,12,0">
+                    <TextBlock Text="Заливка:"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+                    <ComboBox Name="ComboFillColor"
+                              Width="120"
+                              VerticalAlignment="Center"
+                              ItemTemplate="{StaticResource ColorItemTemplate}"/>
+                </StackPanel>
+
+                <Separator/>
+
+                <!-- ====== Кнопка: Нарисовать ====== -->
+                <Button Name="BtnDrawShape"
+                        Content="✎ Нарисовать"
+                        Width="100"
+                        Height="32"
+                        Margin="8,0"
+                        Padding="4,2"
+                        ToolTip="Нарисовать выбранную фигуру"
+                        Click="BtnDrawShape_Click"/>
+
+                <Separator/>
+
+                <!-- ====== Кнопки: Undo / Redo ====== -->
+                <Button Name="BtnUndo"
+                        Content="↺ Undo"
+                        Width="80"
+                        Height="32"
+                        Margin="4,0"
+                        Padding="4,2"
+                        ToolTip="Отменить последнее действие"
+                        Click="BtnUndo_Click"/>
+                <Button Name="BtnRedo"
+                        Content="↻ Redo"
+                        Width="80"
+                        Height="32"
+                        Margin="4,0"
+                        Padding="4,2"
+                        ToolTip="Повторить отменённое действие"
+                        Click="BtnRedo_Click"/>
+
+                <Separator/>
+
+                <!-- ====== Кнопки: Сохранить / Загрузить ====== -->
+                <Button Name="BtnSave"
+                        Content="💾 Сохранить"
+                        Width="90"
+                        Height="32"
+                        Margin="4,0"
+                        Padding="4,2"
+                        ToolTip="Сохранить рисунок в файл"
+                        Click="BtnSave_Click"/>
+                <Button Name="BtnLoad"
+                        Content="📂 Загрузить"
+                        Width="90"
+                        Height="32"
+                        Margin="4,0"
+                        Padding="4,2"
+                        ToolTip="Загрузить рисунок из файла"
+                        Click="BtnLoad_Click"/>
+
+                <Separator/>
+
+                <!-- ====== Кнопка: Загрузить плагин ====== -->
+                <Button Name="BtnLoadPlugin"
+                        Content="🔌 Плагин"
+                        Width="80"
+                        Height="32"
+                        Margin="4,0"
+                        Padding="4,2"
+                        ToolTip="Загрузить дополнительные фигуры из DLL"
+                        Click="BtnLoadPlugin_Click"/>
+            </ToolBar>
+        </ToolBarTray>
+
+
+        <!-- =================== ОБЛАСТЬ РИСОВАНИЯ =================== -->
+        <Border BorderBrush="#CCC"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="10"
                 Background="White"
-                Margin="5"
-                ClipToBounds="True"/>
+                Padding="4">
+            <Canvas Name="DrawingCanvas"
+                    Background="WhiteSmoke"
+                    ClipToBounds="True"/>
+        </Border>
+
     </DockPanel>
 </Window>
