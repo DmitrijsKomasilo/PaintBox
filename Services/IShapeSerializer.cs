@@ -1,20 +1,25 @@
-﻿using System.Collections.Generic;
+﻿using PaintBox.Models;
+using System.Collections.Generic;
 
 namespace PaintBox.Services
 {
     /// <summary>
-    /// Сериализует и десериализует набор фигур (IShape) в файл и обратно.
+    /// Интерфейс, обеспечивающий сериализацию/десериализацию списка фигур.
     /// </summary>
     public interface IShapeSerializer
     {
         /// <summary>
-        /// Сохранить список фигур в файл (json/xml/и т.д.).
+        /// Сохраняет список фигур в файл (формат по выбору: JSON, XML и т.д.).
         /// </summary>
-        void Save(string path, IEnumerable<PaintBox.Models.IShape> shapes);
+        /// <param name="filePath">Путь к файлу.</param>
+        /// <param name="shapes">Коллекция IShape (ShapeBase и наследники).</param>
+        void Save(string filePath, IEnumerable<IShape> shapes);
 
         /// <summary>
-        /// Загрузить список фигур из файла.
+        /// Загружает список фигур из файла, восстанавливает каждый объект IShape.
         /// </summary>
-        IEnumerable<PaintBox.Models.IShape> Load(string path);
+        /// <param name="filePath">Путь к JSON‐файлу.</param>
+        /// <returns>Список восстановленных IShape.</returns>
+        IEnumerable<IShape> Load(string filePath);
     }
 }
