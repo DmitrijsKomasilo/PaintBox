@@ -1,4 +1,4 @@
-﻿using PaintBox.Models;
+﻿using PaintBox.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,28 +8,18 @@ using System.Reflection;
 namespace PaintBox.Services
 {
     /// <summary>
-    /// Класс, ответственный за загрузку всех типов IShapePlugin
-    /// из указанной DLL-файла.
+    /// Загрузка плагинов через Reflection: ищем все IShapePlugin в указанной DLL.
     /// </summary>
     public static class PluginLoader
     {
-        /// <summary>
-        /// Загружает все плагины (типы, реализующие IShapePlugin) из DLL.
-        /// Возвращает список готовых экземпляров IShapePlugin.
-        /// </summary>
         public static List<IShapePlugin> LoadPlugins(string dllPath)
         {
             var result = new List<IShapePlugin>();
-
-            if (!File.Exists(dllPath))
-                return result;
+            if (!File.Exists(dllPath)) return result;
 
             try
             {
-                // Загружаем сборку из указанного пути
-                Assembly asm = Assembly.LoadFrom(dllPath);
-
-                // Ищем все публичные типы, которые реализуют IShapePlugin
+                var asm = Assembly.LoadFrom(dllPath);
                 var pluginTypes = asm.GetTypes()
                     .Where(t => !t.IsAbstract
                              && !t.IsInterface
@@ -39,24 +29,20 @@ namespace PaintBox.Services
                 {
                     try
                     {
-                        // Создаём экземпляр через Activator
                         var pluginInstance = (IShapePlugin)Activator.CreateInstance(type)!;
-                        // Проверяем, чтобы Name не был null/пустым и чтобы не дублировался
                         if (!string.IsNullOrEmpty(pluginInstance.Name))
-                        {
                             result.Add(pluginInstance);
-                        }
                     }
                     catch
                     {
-                        // Если не получилось создать экземпляр (нет конструктора без параметров и т.д.), пропускаем.
+                        // Пропускаем типы, которые не удалось создать
                         continue;
                     }
                 }
             }
             catch
             {
-                // Если не удалось загрузить сборку, просто возвращаем пустой список
+                // Если вообще не удалось загрузить сборку, возвращаем пустой список
             }
 
             return result;
