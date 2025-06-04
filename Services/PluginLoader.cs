@@ -1,55 +1,65 @@
-﻿using System;
+﻿using PaintBox.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using PaintBox.Models;
 
 namespace PaintBox.Services
 {
     /// <summary>
-    /// Класс, который умеет загружать плагины (DLL), находить в них все IShapePlugin 
-    /// и возвращать список доступных типов фигур.
+    /// Класс, ответственный за загрузку всех типов IShapePlugin
+    /// из указанной DLL-файла.
     /// </summary>
     public static class PluginLoader
     {
         /// <summary>
-        /// Ищет в переданном файле (DLL) все типы, реализующие IShapePlugin,
-        /// и возвращает список "Name" и фабрик для создания фигур.
+        /// Загружает все плагины (типы, реализующие IShapePlugin) из DLL.
+        /// Возвращает список готовых экземпляров IShapePlugin.
         /// </summary>
-        public static IEnumerable<IShapePlugin> LoadPlugins(string dllPath)
+        public static List<IShapePlugin> LoadPlugins(string dllPath)
         {
-            if (!File.Exists(dllPath))
-                yield break;
+            var result = new List<IShapePlugin>();
 
-            Assembly asm;
+            if (!File.Exists(dllPath))
+                return result;
+
             try
             {
-                asm = Assembly.LoadFrom(dllPath);
+                // Загружаем сборку из указанного пути
+                Assembly asm = Assembly.LoadFrom(dllPath);
+
+                // Ищем все публичные типы, которые реализуют IShapePlugin
+                var pluginTypes = asm.GetTypes()
+                    .Where(t => !t.IsAbstract
+                             && !t.IsInterface
+                             && typeof(IShapePlugin).IsAssignableFrom(t));
+
+                foreach (var type in pluginTypes)
+                {
+                    try
+                    {
+                        // Создаём экземпляр через Activator
+                        var pluginInstance = (IShapePlugin)Activator.CreateInstance(type)!;
+                        // Проверяем, чтобы Name не был null/пустым и чтобы не дублировался
+                        if (!string.IsNullOrEmpty(pluginInstance.Name))
+                        {
+                            result.Add(pluginInstance);
+                        }
+                    }
+                    catch
+                    {
+                        // Если не получилось создать экземпляр (нет конструктора без параметров и т.д.), пропускаем.
+                        continue;
+                    }
+                }
             }
             catch
             {
-                yield break;
+                // Если не удалось загрузить сборку, просто возвращаем пустой список
             }
 
-            foreach (var type in asm.GetTypes())
-            {
-                if (!type.IsClass || type.IsAbstract)
-                    continue;
-
-                if (typeof(IShapePlugin).IsAssignableFrom(type))
-                {
-                    IShapePlugin pluginInstance = null;
-                    try
-                    {
-                        pluginInstance = (IShapePlugin)Activator.CreateInstance(type);
-                    }
-                    catch { continue; }
-
-                    if (pluginInstance != null)
-                        yield return pluginInstance;
-                }
-            }
+            return result;
         }
     }
 }

@@ -7,7 +7,6 @@ namespace PaintBox.Models
 {
     /// <summary>
     /// Замкнутый многоугольник (Polygon), реализующий IDrawableShape.
-    /// ЛКМ добавляет вершину, а РКМ завершает и рисует итоговую заполненную фигуру.
     /// </summary>
     public class PolygonShape : ShapeBase, IDrawableShape
     {
@@ -89,12 +88,9 @@ namespace PaintBox.Models
             // Левый клик: добавляем новую вершину в Points
             Points.Add(endPoint);
 
-            return false; // пока не завершаем (ждём РКМ)
+            return false;
         }
 
-        /// <summary>
-        /// Вызывается из MainWindow при правом клике, чтобы «закрыть» полигон.
-        /// </summary>
         public bool FinishOnRightClick()
         {
             _isDrawing = false;

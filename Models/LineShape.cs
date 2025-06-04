@@ -8,7 +8,7 @@ namespace PaintBox.Models
     {
         public override string TypeName => "Line";
 
-        // Этот объект будем использовать в качестве «превью». Создаётся один раз в StartDrawing, 
+        // Этот объект используется в качестве «превью». Создаётся один раз в StartDrawing, 
         // а затем при каждом UpdateDrawing мы меняем X2, Y2.
         private Line _previewLine;
 
@@ -82,7 +82,7 @@ namespace PaintBox.Models
         {
             // В обычной линии рисование завершается при MouseLeftButtonUp
             Bounds = new Rect(Bounds.X, Bounds.Y, endPoint.X, endPoint.Y);
-            // Preview окончательно не нужен – при завершении мы же добавим «реальный» WPF Shape из CreateWpfShape()
+            // Preview окончательно не нужен – при завершении добавим «реальный» WPF Shape из CreateWpfShape()
             return true;
         }
 

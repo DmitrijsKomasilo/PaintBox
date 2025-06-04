@@ -32,7 +32,6 @@ namespace PaintBox
             return Brushes.Transparent;
         }
 
-        // Обратная конвертация нам не нужна, поэтому кидаем исключение
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();

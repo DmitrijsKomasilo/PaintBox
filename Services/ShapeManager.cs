@@ -52,29 +52,15 @@ namespace PaintBox.Services
                 return;
             }
 
-            // Находим в Canvas нужный WPF-элемент по свойству TypeName и текущим координатам.
-            // В этой ЛР допускается упрощение: либо мы храним ссылку на сам WPF-объект,
-            // либо ищем по порядку. Для начала: удалим «первую подходящую» фигуру.
             Shape toRemove = null;
             foreach (var child in _canvas.Children)
             {
                 if (child is Shape s && s.Uid == shape.TypeName)
                 {
-                    // Условимся: в CreateWpfShape мы прописываем s.Uid = shape.TypeName,
-                    // но тогда на экране удалятся ВСЕ фигуры с одним TypeName. Это слишком грубо.
-                    // Лучше сразу при создании сохранять связь “IShape → WPF Shape” в словаре.
                 }
             }
 
-            // Чтобы избежать сложностей, заведём словарь:
-            // private readonly Dictionary<IShape, Shape> _map = new Dictionary<IShape, Shape>();
-            // И будем здесь:
-            // var wpfShape = _map[shape];
-            // _canvas.Children.Remove(wpfShape);
-            // _map.Remove(shape);
 
-            // Но чтобы не усложнять сейчас, оставим упрощённый вариант:
-            // Удалим последнюю добавленную на Canvas фигуру:
             if (_canvas.Children.Count > 0)
             {
                 var last = _canvas.Children[_canvas.Children.Count - 1] as Shape;
@@ -91,7 +77,7 @@ namespace PaintBox.Services
         public void Redo() => _commandManager.Redo();
 
         /// <summary>
-        /// Возвращает текущее «набор» фигур. Понадобится для сериализации.
+        /// Возвращает текущее «набор» фигур.
         /// </summary>
         public IReadOnlyList<IShape> GetAllShapes() => _shapes.AsReadOnly();
 
@@ -102,7 +88,6 @@ namespace PaintBox.Services
         {
             _canvas.Children.Clear();
             _shapes.Clear();
-            // Здесь можно очистить еще и стеки commandManager, если нужно.
         }
 
         /// <summary>
@@ -113,7 +98,7 @@ namespace PaintBox.Services
             ClearAll();
             foreach (var shape in shapes)
             {
-                // Добавляем уже без записи команды (recordCommand: false)
+
                 AddShape(shape, recordCommand: false);
             }
         }

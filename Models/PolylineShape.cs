@@ -18,7 +18,7 @@ namespace PaintBox.Models
 
         public override Shape CreateWpfShape()
         {
-            // Создаём финальную ломанаю (Polyline) без заливки
+            // Создаём финальную ломанаю (Polyline)
             var polyline = new Polyline
             {
                 Stroke = new SolidColorBrush(StrokeColor),
@@ -88,12 +88,10 @@ namespace PaintBox.Models
             // Левый клик: добавляем вершину
             Points.Add(endPoint);
 
-            return false; // пока не завершаем (ждём РКМ)
+            return false;
         }
 
-        /// <summary>
         /// Вызывается из MainWindow при правом клике, чтобы «закончить» ломаную.
-        /// </summary>
         public bool FinishOnRightClick()
         {
             _isDrawing = false;

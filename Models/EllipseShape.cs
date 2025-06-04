@@ -6,10 +6,8 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Models
 {
-    /// <summary>
     /// Эллипс, реализующий IDrawableShape.
-    /// Поддерживает рисование «в любом направлении» аналогично RectangleShape.
-    /// </summary>
+
     public class EllipseShape : ShapeBase, IDrawableShape
     {
         public override string TypeName => "Ellipse";

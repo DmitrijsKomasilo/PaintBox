@@ -14,26 +14,26 @@ namespace PaintBox
     public partial class MainWindow : Window
     {
         private readonly ShapeManager _shapeManager;
-        private readonly IShapeSerializer _serializer = new JsonShapeSerializer();
+        private readonly IShapeSerializer _serializer;
         private readonly Dictionary<string, Func<IShape>> _shapeFactories = new();
 
-        // Текущий «рисуемый» объект (Line, Rectangle, Ellipse, Polyline или Polygon)
+        // Текущий «рисуемый» объект (Line, Rectangle, Ellipse, Polyline, Polygon или плагиновая фигура)
         private IDrawableShape _currentDrawable;
-        // Его временный WPF-элемент (пунктир), который мы рисуем как превью
+        // Пунктирное превью фигуры во время рисования
         private Shape _previewWpfShape;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            // Инициализируем ShapeManager, передаём ему Canvas
             _shapeManager = new ShapeManager(DrawingCanvas);
 
-            // Регистрируем встроенные фигуры
             RegisterBuiltInShapes();
-            // Заполняем списки цветов
             RegisterBasicColors();
-            // Обновляем кнопки Undo/Redo
+
+            // Теперь передаём в JsonShapeSerializer словарь
+            _serializer = new JsonShapeSerializer(_shapeFactories);
+
             UpdateUndoRedoButtons();
         }
 
@@ -47,8 +47,8 @@ namespace PaintBox
             _shapeFactories.Add("Polygon", () => new PolygonShape());
             _shapeFactories.Add("Polyline", () => new PolylineShape());
 
-            ComboShapes.ItemsSource = _shapeFactories.Keys;
-            ComboShapes.SelectedIndex = 0; // по умолчанию первая фигура
+            ComboShapes.ItemsSource = _shapeFactories.Keys.ToList();
+            ComboShapes.SelectedIndex = 0;
         }
 
         private void RegisterBasicColors()
@@ -121,6 +121,7 @@ namespace PaintBox
             {
                 try
                 {
+                    // Загрузка фигур из JSON
                     var shapes = _serializer.Load(dlg.FileName);
                     _shapeManager.LoadShapes(shapes);
                     UpdateUndoRedoButtons();
@@ -144,24 +145,26 @@ namespace PaintBox
             {
                 var plugins = PluginLoader.LoadPlugins(dlg.FileName);
                 int count = 0;
+
                 foreach (var plugin in plugins)
                 {
-                    if (plugin.Name == null) continue;
-                    if (!_shapeFactories.ContainsKey(plugin.Name))
-                    {
-                        _shapeFactories.Add(plugin.Name, () => plugin.CreateShapeInstance());
-                        count++;
-                    }
+                    if (string.IsNullOrEmpty(plugin.Name) || _shapeFactories.ContainsKey(plugin.Name))
+                        continue;
+
+                    _shapeFactories.Add(plugin.Name, () => plugin.CreateShapeInstance());
+                    count++;
                 }
 
                 if (count > 0)
                 {
-                    ComboShapes.ItemsSource = _shapeFactories.Keys;
-                    MessageBox.Show($"Загружено {count} типов фигур из плагина.", "Плагин", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Обновляем ComboShapes (копируем в новый список, чтобы ItemsSource «увидел» изменение)
+                    ComboShapes.ItemsSource = _shapeFactories.Keys.ToList();
+                    ComboShapes.SelectedIndex = 0;
+                    MessageBox.Show($"Загружено {count} новых фигур из плагина.", "Плагин", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show("В выбранной DLL не найдено ни одного IShapePlugin.", "Плагин", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Плагинов не найдено или имена дублируются.", "Плагин", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }
@@ -170,9 +173,6 @@ namespace PaintBox
 
         #region Обработчики мыши для Canvas
 
-        /// <summary>
-        /// Клэмпит "сырые" координаты мыши в области Canvas: [0, ActualWidth] × [0, ActualHeight].
-        /// </summary>
         private Point ClampToCanvas(Point raw)
         {
             double x = Math.Max(0, Math.Min(raw.X, DrawingCanvas.ActualWidth));
@@ -180,31 +180,26 @@ namespace PaintBox
             return new Point(x, y);
         }
 
-        /// <summary>
-        /// Срабатывает при нажатии ЛКМ на Canvas.
-        /// Если уже рисуется Polygon/Polyline, добавляет новую вершину.
-        /// Иначе создаёт новый IDrawableShape и начинает рисование.
-        /// </summary>
         private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             Point rawPt = e.GetPosition(DrawingCanvas);
             Point pt = ClampToCanvas(rawPt);
 
-            // Если уже рисуем Polygon, фиксируем новую вершину
+            // Если рисуем Polygon, добавляем новую вершину
             if (_currentDrawable is PolygonShape polygonShape)
             {
                 polygonShape.CompleteDrawing(pt);
                 return;
             }
 
-            // Если уже рисуем Polyline, фиксируем новую вершину
+            // Если рисуем Polyline, добавляем новую вершину
             if (_currentDrawable is PolylineShape polylineShape)
             {
                 polylineShape.CompleteDrawing(pt);
                 return;
             }
 
-            // Иначе: начинаем новую фигуру
+            // Иначе начинаем новую фигуру (или плагиновую)
             if (ComboShapes.SelectedItem == null)
                 return;
 
@@ -216,27 +211,24 @@ namespace PaintBox
             if (_currentDrawable == null)
                 return;
 
-            // Устанавливаем параметры из UI: толщина, цвет контура, цвет заливки
+            // Передаём параметры рисования
             _currentDrawable.StrokeThickness = SliderThickness.Value;
             var strokeName = ComboStrokeColor.SelectedItem?.ToString() ?? "Black";
             _currentDrawable.StrokeColor = (Color)ColorConverter.ConvertFromString(strokeName);
             var fillName = ComboFillColor.SelectedItem?.ToString() ?? "Transparent";
             _currentDrawable.FillColor = (Color)ColorConverter.ConvertFromString(fillName);
 
-            // Создаём превью-примитив и добавляем его на Canvas
+            // Создаём пунктирное превью и кладём в Canvas
             _previewWpfShape = _currentDrawable.CreatePreviewShape();
             DrawingCanvas.Children.Add(_previewWpfShape);
 
-            // Передаём первую точку (начало рисования)
+            // Инициализируем первую точку
             _currentDrawable.StartDrawing(pt);
 
-            // Захватываем мышь, чтобы получать MouseMove и MouseRightButtonDown
+            // Захватываем мышь
             DrawingCanvas.CaptureMouse();
         }
 
-        /// <summary>
-        /// Срабатывает при движении мыши над Canvas. Обновляет превью-фигуру.
-        /// </summary>
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             if (_currentDrawable == null)
@@ -247,26 +239,23 @@ namespace PaintBox
             _currentDrawable.UpdateDrawing(currentPt);
         }
 
-        /// <summary>
-        /// Срабатывает при отпускании ЛКМ над Canvas.
-        /// Для простых фигур (Line, Rectangle, Ellipse) завершает рисование.
-        /// Для Polygon/Polyline ничего не делает (они ждут ПКМ).
-        /// </summary>
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (_currentDrawable == null)
                 return;
 
-            if (_currentDrawable is LineShape ||
-                _currentDrawable is RectangleShape ||
-                _currentDrawable is EllipseShape)
+            // Универсальный «одношаговый» вариант: 
+            // любой IDrawableShape, кроме PolygonShape и PolylineShape, 
+            // завершаем при отпускании ЛКМ
+            if (!(_currentDrawable is PolygonShape) && !(_currentDrawable is PolylineShape))
             {
                 Point rawPt = e.GetPosition(DrawingCanvas);
                 Point endPt = ClampToCanvas(rawPt);
 
+                // Завершаем рисование (CompleteDrawing → true)
                 _currentDrawable.CompleteDrawing(endPt);
 
-                // Удаляем превью и добавляем реальную фигуру
+                // Удаляем превью, добавляем «реальную» фигуру
                 DrawingCanvas.Children.Remove(_previewWpfShape);
                 _shapeManager.AddShape(_currentDrawable);
 
@@ -275,13 +264,8 @@ namespace PaintBox
                 DrawingCanvas.ReleaseMouseCapture();
                 UpdateUndoRedoButtons();
             }
-            // Для Polygon/Polyline: ничего не делаем ― ждем правый клик
         }
 
-        /// <summary>
-        /// Срабатывает при нажатии ПКМ на Canvas.
-        /// Для Polygon/Polyline: добавляет последнюю вершину и завершает рисование.
-        /// </summary>
         private void Canvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (_currentDrawable == null)
@@ -294,22 +278,17 @@ namespace PaintBox
 
             if (_currentDrawable is PolygonShape polygon)
             {
-                // Сначала добавляем последнюю вершину
                 polygon.CompleteDrawing(pt);
-                // Затем «закрываем» многоугольник
                 finished = polygon.FinishOnRightClick();
             }
             else if (_currentDrawable is PolylineShape polyline)
             {
-                // Сначала добавляем последнюю вершину
                 polyline.CompleteDrawing(pt);
-                // Затем завершаем полилинию
                 finished = polyline.FinishOnRightClick();
             }
 
             if (finished)
             {
-                // Удаляем превью и добавляем «реальную» фигуру
                 DrawingCanvas.Children.Remove(_previewWpfShape);
                 _shapeManager.AddShape(_currentDrawable);
 

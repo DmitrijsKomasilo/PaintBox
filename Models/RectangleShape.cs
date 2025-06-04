@@ -8,7 +8,6 @@ namespace PaintBox.Models
 {
     /// <summary>
     /// Прямоугольник, реализующий IDrawableShape.
-    /// Теперь поддерживает рисование «в любом направлении».
     /// </summary>
     public class RectangleShape : ShapeBase, IDrawableShape
     {
@@ -64,7 +63,6 @@ namespace PaintBox.Models
         public void StartDrawing(Point startPoint)
         {
             _startPoint = startPoint;
-            // Вначале ширина/высота = 0
             Bounds = new Rect(startPoint.X, startPoint.Y, 0, 0);
 
             if (_previewRect != null)
@@ -97,7 +95,7 @@ namespace PaintBox.Models
 
         public bool CompleteDrawing(Point endPoint)
         {
-            // При завершении (отпускание ЛКМ) просто обновляем до конечной точки
+
             UpdateDrawing(endPoint);
             return true;
         }

@@ -1,48 +1,56 @@
-﻿using PaintBox.Models;
+﻿// PaintBox\Services\JsonShapeSerializer.cs
+
+using PaintBox.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Windows;
 using System.Windows.Media;
 
 namespace PaintBox.Services
 {
     /// <summary>
-    /// Класс для сериализации/десериализации фигур в JSON.
-    /// Использует DTO ShapeData и PointData.
+    /// JSON‐сериализатор
     /// </summary>
     public class JsonShapeSerializer : IShapeSerializer
     {
-        // Опции для JsonSerializer (красивый вывод, без циклических ссылок)
         private readonly JsonSerializerOptions _options = new JsonSerializerOptions
         {
             WriteIndented = true,
-            // Чтобы свойство Points (List<PointData>) корректно
-            // сериализовалось даже если null.
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
+        // Словарь: ключ = строковое имя фигуры (TypeName), значение = Func<IShape> (фабрика)
+        private readonly IReadOnlyDictionary<string, Func<IShape>> _factories;
+
         /// <summary>
-        /// Сохраняет список фигур в JSON-файл.
+        /// Конструктор принимает словарь фабрик из MainWindow (включая плагины).
+        /// </summary>
+        public JsonShapeSerializer(IReadOnlyDictionary<string, Func<IShape>> factories)
+        {
+            _factories = factories ?? throw new ArgumentNullException(nameof(factories));
+        }
+
+        /// <summary>
+        /// Сохраняет список IShape в JSON-файл.
         /// </summary>
         public void Save(string filePath, IEnumerable<IShape> shapes)
         {
-            // Конвертируем каждую IShape → ShapeData
-            List<ShapeData> dataList = shapes
-                .Select(shape => ConvertToShapeData(shape))
-                .ToList();
+            // 1) Преобразуем каждую IShape -> ShapeData
+            var dataList = shapes.Select(ConvertToShapeData).ToList();
 
-            // Сериализуем в строку JSON
+            // 2) Сериализуем в JSON
             string json = JsonSerializer.Serialize(dataList, _options);
 
-            // Записываем в файл
+            // 3) Записываем в файл
             File.WriteAllText(filePath, json);
         }
 
         /// <summary>
-        /// Загружает JSON‐файл, десериализует массив ShapeData и создает реальные IShape.
+        /// Загружает JSON-файл, десериализует массив ShapeData → IShape (включая плагины).
         /// </summary>
         public IEnumerable<IShape> Load(string filePath)
         {
@@ -55,8 +63,7 @@ namespace PaintBox.Services
             if (dataList == null)
                 return Enumerable.Empty<IShape>();
 
-            List<IShape> shapes = new List<IShape>();
-
+            var shapes = new List<IShape>();
             foreach (var data in dataList)
             {
                 var shape = ConvertToIShape(data);
@@ -67,32 +74,29 @@ namespace PaintBox.Services
             return shapes;
         }
 
-        #region Преобразования: IShape ↔ ShapeData
+        #region IShape ↔ ShapeData
 
         /// <summary>
-        /// Создаёт DTO ShapeData из IShape.
+        /// Преобразует IShape (RectangleShape, TrapezoidShape и т.д.) → DTO ShapeData.
         /// </summary>
         private ShapeData ConvertToShapeData(IShape shape)
         {
             var sd = new ShapeData
             {
                 TypeName = shape.TypeName,
-
-                // Цвета: преобразуем Color → строку "#AARRGGBB"
                 StrokeColor = ColorToHex(shape.StrokeColor),
                 FillColor = ColorToHex(shape.FillColor),
-
                 StrokeThickness = shape.StrokeThickness
             };
 
-            // Если есть Bounds (Line/Rect/Ellipse)
+            // Bounds: X, Y, Width, Height
             var bounds = shape.Bounds;
             sd.BoundsX = bounds.X;
             sd.BoundsY = bounds.Y;
             sd.BoundsWidth = bounds.Width;
             sd.BoundsHeight = bounds.Height;
 
-            // Если фигура содержит Points (например, Polygon или Polyline)
+            // Если есть вершины (Polygon/Polyline/Trapezoid и т.д.)
             if (shape.Points != null && shape.Points.Count > 0)
             {
                 sd.Points = shape.Points
@@ -108,53 +112,55 @@ namespace PaintBox.Services
         }
 
         /// <summary>
-        /// Восстанавливает IShape на основе данных ShapeData.
-        /// Для неизвестных TypeName возвращает null.
+        /// Преобразует DTO ShapeData → IShape (включая поддержку плагинов через _factories).
         /// </summary>
         private IShape? ConvertToIShape(ShapeData data)
         {
-            // По имени типа создаём экземпляр нужного класса
-            IShape? shape = data.TypeName switch
-            {
-                "Line" => new LineShape(),
-                "Rectangle" => new RectangleShape(),
-                "Ellipse" => new EllipseShape(),
-                "Polygon" => new PolygonShape(),
-                "Polyline" => new PolylineShape(),
+            IShape? shape = null;
 
-                // Если у вас в будущем будут плагины, 
-                // проверка на них может идти так (pseudo-код):
-                // var pluginFactory = PluginLoader.GetFactoryByName(data.TypeName);
-                // if (pluginFactory != null) shape = pluginFactory();
-                _ => null
-            };
+            // 1) Попробовать создать фигуру через словарь
+            if (_factories.TryGetValue(data.TypeName, out var factory))
+            {
+                shape = factory.Invoke();
+            }
+            else
+            {
+                // 2) Если в словаре нет, пробуем встроенные через switch (на случай, если фабрика не зарегистрирована)
+                shape = data.TypeName switch
+                {
+                    "Line" => new LineShape(),
+                    "Rectangle" => new RectangleShape(),
+                    "Ellipse" => new EllipseShape(),
+                    "Polygon" => new PolygonShape(),
+                    "Polyline" => new PolylineShape(),
+                    _ => null
+                };
+            }
 
             if (shape == null)
                 return null;
 
-            // Заполняем параметры цвета/толщины
+            // 3) Устанавливаем параметры цвета/толщины
             shape.StrokeThickness = data.StrokeThickness;
             shape.StrokeColor = HexToColor(data.StrokeColor);
             shape.FillColor = HexToColor(data.FillColor);
 
-            // Устанавливаем Bounds
-            shape.Bounds = new System.Windows.Rect(
+            // 4) Устанавливаем Bounds
+            shape.Bounds = new Rect(
                 data.BoundsX, data.BoundsY,
                 data.BoundsWidth, data.BoundsHeight
             );
 
-            // Если есть вершины – восстанавливаем Points
+            // 5) Восстанавливаем Points, если есть
             if (data.Points != null && data.Points.Count > 0)
             {
-                shape.Points = new System.Windows.Media.PointCollection(
-                    data.Points.Select(pd => new System.Windows.Point(pd.X, pd.Y))
+                shape.Points = new PointCollection(
+                    data.Points.Select(pd => new Point(pd.X, pd.Y))
                 );
             }
             else
             {
-                // Если это Polyline/Polygon, но Points отсутствуют, 
-                // оставляем пустую коллекцию
-                shape.Points = new System.Windows.Media.PointCollection();
+                shape.Points = new PointCollection();
             }
 
             return shape;
@@ -162,22 +168,15 @@ namespace PaintBox.Services
 
         #endregion
 
-        #region Утилиты для Color ↔ Hex
+        #region Color ↔ Hex
 
-        /// <summary>
-        /// Преобразует System.Windows.Media.Color в строку "#AARRGGBB".
-        /// </summary>
         private static string ColorToHex(Color color)
         {
             return $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
         }
 
-        /// <summary>
-        /// Преобразует строку "#AARRGGBB" в System.Windows.Media.Color.
-        /// </summary>
         private static Color HexToColor(string hex)
         {
-            // Предполагаем, что hex в виде "#AARRGGBB" или "#RRGGBB"
             return (Color)ColorConverter.ConvertFromString(hex);
         }
 
