@@ -1,6 +1,4 @@
-﻿// PaintBox/MainWindow.xaml.cs
-
-using PaintBox.Interfaces;
+﻿using PaintBox.Interfaces;
 using PaintBox.Managers;
 using PaintBox.Models;
 using PaintBox.Services;
