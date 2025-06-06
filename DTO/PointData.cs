@@ -1,9 +1,5 @@
 ﻿namespace PaintBox.DTO
 {
-    /// <summary>
-    /// Простая структура для одной точки: X, Y.
-    /// Используется внутри ShapeData.Points.
-    /// </summary>
     public class PointData
     {
         public double X { get; set; }

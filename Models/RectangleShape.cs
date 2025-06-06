@@ -6,15 +6,14 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Models
 {
-    /// <summary>
-    /// Прямоугольник. Реализует IDrawableShape.
-    /// </summary>
     public class RectangleShape : ShapeBase, IDrawableShape
     {
         private Rectangle _previewRect = new Rectangle();
         private Point _startPoint;
 
         public override string TypeName => "Rectangle";
+
+        public bool IsMultiStep => false;
 
         #region IDrawableShape
 
@@ -41,10 +40,10 @@ namespace PaintBox.Models
 
         public void UpdateDrawing(Point currentPoint)
         {
-            double x = Math.Min(currentPoint.X, _startPoint.X);
-            double y = Math.Min(currentPoint.Y, _startPoint.Y);
-            double w = Math.Abs(currentPoint.X - _startPoint.X);
-            double h = Math.Abs(currentPoint.Y - _startPoint.Y);
+            double x = System.Math.Min(currentPoint.X, _startPoint.X);
+            double y = System.Math.Min(currentPoint.Y, _startPoint.Y);
+            double w = System.Math.Abs(currentPoint.X - _startPoint.X);
+            double h = System.Math.Abs(currentPoint.Y - _startPoint.Y);
 
             Canvas.SetLeft(_previewRect, x);
             Canvas.SetTop(_previewRect, y);
@@ -55,6 +54,7 @@ namespace PaintBox.Models
         public bool CompleteDrawing(Point endPoint)
         {
             UpdateDrawing(endPoint);
+
             Bounds = new Rect(
                 Canvas.GetLeft(_previewRect),
                 Canvas.GetTop(_previewRect),

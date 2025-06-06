@@ -5,15 +5,14 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Models
 {
-    /// <summary>
-    /// Многоугольник. Реализует IDrawableShape.
-    /// </summary>
     public class PolygonShape : ShapeBase, IDrawableShape
     {
         private Polygon _previewPolygon = new Polygon();
         private bool _isDrawing;
 
         public override string TypeName => "Polygon";
+
+        public bool IsMultiStep => true;
 
         #region IDrawableShape
 
@@ -51,14 +50,16 @@ namespace PaintBox.Models
         public bool CompleteDrawing(Point endPoint)
         {
             if (!_isDrawing) return false;
+
             Points.Add(endPoint);
             _previewPolygon.Points = new PointCollection(Points);
-            return true;
+            return false;
         }
 
         public bool FinishOnRightClick()
         {
             if (!_isDrawing) return false;
+
             _isDrawing = false;
             Bounds = CalculateBounds(Points);
             return true;
@@ -85,13 +86,9 @@ namespace PaintBox.Models
             Bounds = CalculateBounds(Points);
         }
 
-        /// <summary>
-        /// Вспомогательный метод для вычисления границ по коллекции точек.
-        /// </summary>
         private static Rect CalculateBounds(PointCollection pts)
         {
-            if (pts == null || pts.Count == 0)
-                return new Rect();
+            if (pts == null || pts.Count == 0) return new Rect();
 
             double minX = pts[0].X, maxX = pts[0].X;
             double minY = pts[0].Y, maxY = pts[0].Y;

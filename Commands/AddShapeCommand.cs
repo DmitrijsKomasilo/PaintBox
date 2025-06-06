@@ -4,14 +4,11 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Commands
 {
-    /// <summary>
-    /// Команда для добавления фигуры на Canvas (Undo/Redo).
-    /// </summary>
     public class AddShapeCommand : ICommand
     {
-        private readonly IShape _shape;       // модель фигуры (e.g. RectangleShape)
-        private readonly Canvas _canvas;      // Canvas, на который рисуем
-        private Shape? _wpfShape;             // экземпляр WPF-элемента (Rectangle, Ellipse, Polygon...)
+        private readonly IShape _shape;
+        private readonly Canvas _canvas;
+        private Shape? _wpfShape;
 
         public AddShapeCommand(IShape shape, Canvas canvas)
         {
@@ -21,7 +18,6 @@ namespace PaintBox.Commands
 
         public void Do()
         {
-            // Создаём WPF-элемент у модели
             _wpfShape = _shape.CreateWpfShape();
             _canvas.Children.Add(_wpfShape!);
         }

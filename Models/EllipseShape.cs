@@ -6,15 +6,14 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Models
 {
-    /// <summary>
-    /// Эллипс. Реализует IDrawableShape.
-    /// </summary>
     public class EllipseShape : ShapeBase, IDrawableShape
     {
         private Ellipse _previewEllipse = new Ellipse();
         private Point _startPoint;
 
         public override string TypeName => "Ellipse";
+
+        public bool IsMultiStep => false;
 
         #region IDrawableShape
 
@@ -55,6 +54,7 @@ namespace PaintBox.Models
         public bool CompleteDrawing(Point endPoint)
         {
             UpdateDrawing(endPoint);
+
             Bounds = new Rect(
                 Canvas.GetLeft(_previewEllipse),
                 Canvas.GetTop(_previewEllipse),
@@ -85,7 +85,6 @@ namespace PaintBox.Models
 
         public override void UpdateFromWpfShape(Shape shape)
         {
-
             var e = (Ellipse)shape;
             Bounds = new Rect(
                 Canvas.GetLeft(e),

@@ -3,9 +3,6 @@ using System.Collections.Generic;
 
 namespace PaintBox.Commands
 {
-    /// <summary>
-    /// Менеджер для любых команд (Undo/Redo).
-    /// </summary>
     public class CommandManager
     {
         private readonly Stack<ICommand> _undoStack = new();
@@ -14,9 +11,6 @@ namespace PaintBox.Commands
         public bool CanUndo => _undoStack.Count > 0;
         public bool CanRedo => _redoStack.Count > 0;
 
-        /// <summary>
-        /// Выполнить команду и сохранить в истории.
-        /// </summary>
         public void Execute(ICommand command)
         {
             command.Do();
@@ -24,7 +18,6 @@ namespace PaintBox.Commands
             _redoStack.Clear();
         }
 
-        /// <summary>Отменить последнюю команду.</summary>
         public void Undo()
         {
             if (CanUndo)
@@ -35,7 +28,6 @@ namespace PaintBox.Commands
             }
         }
 
-        /// <summary>Повторить команду из Redo-стека.</summary>
         public void Redo()
         {
             if (CanRedo)
@@ -46,7 +38,6 @@ namespace PaintBox.Commands
             }
         }
 
-        /// <summary>Очистить всю историю (после LoadShapes или новой сессии).</summary>
         public void ClearAll()
         {
             _undoStack.Clear();

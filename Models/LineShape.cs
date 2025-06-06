@@ -6,14 +6,15 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Models
 {
-    /// <summary>
-    /// Линия. Реализует IDrawableShape.
-    /// </summary>
     public class LineShape : ShapeBase, IDrawableShape
     {
         private Line _previewLine = new Line();
+        private Point _startPoint;
+        private Point _endPoint;
 
         public override string TypeName => "Line";
+
+        public bool IsMultiStep => false;
 
         #region IDrawableShape
 
@@ -30,6 +31,7 @@ namespace PaintBox.Models
 
         public void StartDrawing(Point startPoint)
         {
+            _startPoint = startPoint;
             _previewLine.X1 = startPoint.X;
             _previewLine.Y1 = startPoint.Y;
             _previewLine.X2 = startPoint.X;
@@ -44,13 +46,22 @@ namespace PaintBox.Models
 
         public bool CompleteDrawing(Point endPoint)
         {
-            UpdateDrawing(endPoint);
+            _endPoint = endPoint;
+
+            _previewLine.X2 = endPoint.X;
+            _previewLine.Y2 = endPoint.Y;
+
+            var x1 = _startPoint.X;
+            var y1 = _startPoint.Y;
+            var x2 = _endPoint.X;
+            var y2 = _endPoint.Y;
             Bounds = new Rect(
-                Math.Min(_previewLine.X1, _previewLine.X2),
-                Math.Min(_previewLine.Y1, _previewLine.Y2),
-                Math.Abs(_previewLine.X2 - _previewLine.X1),
-                Math.Abs(_previewLine.Y2 - _previewLine.Y1)
+                Math.Min(x1, x2),
+                Math.Min(y1, y2),
+                Math.Abs(x2 - x1),
+                Math.Abs(y2 - y1)
             );
+
             return true;
         }
 
@@ -60,13 +71,12 @@ namespace PaintBox.Models
 
         public override Shape CreateWpfShape()
         {
-
             var line = new Line
             {
-                X1 = Bounds.X,
-                Y1 = Bounds.Y,
-                X2 = Bounds.X + Bounds.Width,
-                Y2 = Bounds.Y + Bounds.Height,
+                X1 = _startPoint.X,
+                Y1 = _startPoint.Y,
+                X2 = _endPoint.X,
+                Y2 = _endPoint.Y,
                 Stroke = new SolidColorBrush(StrokeColor),
                 StrokeThickness = StrokeThickness
             };
@@ -75,13 +85,16 @@ namespace PaintBox.Models
 
         public override void UpdateFromWpfShape(Shape shape)
         {
-
             var l = (Line)shape;
+
+            _startPoint = new Point(l.X1, l.Y1);
+            _endPoint = new Point(l.X2, l.Y2);
+
             Bounds = new Rect(
-                Math.Min(l.X1, l.X2),
-                Math.Min(l.Y1, l.Y2),
-                Math.Abs(l.X2 - l.X1),
-                Math.Abs(l.Y2 - l.Y1)
+                Math.Min(_startPoint.X, _endPoint.X),
+                Math.Min(_startPoint.Y, _endPoint.Y),
+                Math.Abs(_endPoint.X - _startPoint.X),
+                Math.Abs(_endPoint.Y - _startPoint.Y)
             );
         }
     }

@@ -4,10 +4,6 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Commands
 {
-    /// <summary>
-    /// Если вдруг реализуется удаление фигуры по щелчку,
-    /// можно создать отдельную команду удаления.
-    /// </summary>
     public class RemoveShapeCommand : ICommand
     {
         private readonly IShape _shape;
@@ -22,13 +18,9 @@ namespace PaintBox.Commands
 
         public void Do()
         {
-            // Здесь предполагаем, что модель умеет вернуть свой WPF-элемент
-            // либо _wpfShape передавался извне.
-            // Для простоты: найдём-удалим по совпадению по типу и координатам.
             foreach (var child in _canvas.Children.OfType<Shape>())
             {
-                // Некоторая логика поиска, какой именно элемент удалять...
-                // (например, сравнение геометрии, тегов или привязка «ссылки»)
+
             }
         }
 

@@ -12,11 +12,6 @@ using System.Windows.Media;
 
 namespace PaintBox.Services
 {
-    /// <summary>
-    /// JSON‐сериализатор, работающий с ShapeData DTO
-    /// и принимающий словарь всех фабрик (_shapeFactories из MainWindow),
-    /// включая плагины.
-    /// </summary>
     public class JsonShapeSerializer : IShapeSerializer
     {
         private readonly IReadOnlyDictionary<string, Func<IShape>> _factories;

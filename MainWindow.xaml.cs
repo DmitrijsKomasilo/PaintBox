@@ -1,5 +1,5 @@
-﻿using PaintBox.Commands;
-using PaintBox.DTO;
+﻿// PaintBox/MainWindow.xaml.cs
+
 using PaintBox.Interfaces;
 using PaintBox.Managers;
 using PaintBox.Models;
@@ -31,7 +31,6 @@ namespace PaintBox
             RegisterBuiltInShapes();
             RegisterBasicColors();
 
-            // Передаём словарь фабрик (включает и плагины) в сериализатор
             _serializer = new JsonShapeSerializer(_shapeFactories);
 
             UpdateUndoRedoButtons();
@@ -74,7 +73,7 @@ namespace PaintBox
 
         #endregion
 
-        #region Кнопки (Undo/Redo, Save/Load, Plugin)
+        #region Обработчики кнопок (Undo/Redo, Save/Load, Plugin)
 
         private void BtnUndo_Click(object sender, RoutedEventArgs e)
         {
@@ -183,23 +182,22 @@ namespace PaintBox
             Point rawPt = e.GetPosition(DrawingCanvas);
             Point pt = ClampToCanvas(rawPt);
 
-            if (_currentDrawable is PolygonShape polygonShape)
+            if (_currentDrawable != null && _currentDrawable.IsMultiStep)
             {
-                polygonShape.CompleteDrawing(pt);
-                return;
-            }
-            if (_currentDrawable is PolylineShape polylineShape)
-            {
-                polylineShape.CompleteDrawing(pt);
+                _currentDrawable.CompleteDrawing(pt);
                 return;
             }
 
-            if (ComboShapes.SelectedItem == null) return;
+            if (ComboShapes.SelectedItem == null)
+                return;
+
             string shapeType = ComboShapes.SelectedItem.ToString();
-            if (!_shapeFactories.ContainsKey(shapeType)) return;
+            if (!_shapeFactories.ContainsKey(shapeType))
+                return;
 
             _currentDrawable = _shapeFactories[shapeType].Invoke() as IDrawableShape;
-            if (_currentDrawable == null) return;
+            if (_currentDrawable == null)
+                return;
 
             _currentDrawable.StrokeThickness = SliderThickness.Value;
             _currentDrawable.StrokeColor = (Color)ColorConverter.ConvertFromString(ComboStrokeColor.SelectedItem.ToString());
@@ -214,7 +212,9 @@ namespace PaintBox
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_currentDrawable == null) return;
+            if (_currentDrawable == null)
+                return;
+
             Point rawPt = e.GetPosition(DrawingCanvas);
             Point currentPt = ClampToCanvas(rawPt);
             _currentDrawable.UpdateDrawing(currentPt);
@@ -222,51 +222,51 @@ namespace PaintBox
 
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (_currentDrawable == null) return;
+            if (_currentDrawable == null)
+                return;
 
-            if (!(_currentDrawable is PolygonShape) && !(_currentDrawable is PolylineShape))
+            if (!_currentDrawable.IsMultiStep)
             {
                 Point rawPt = e.GetPosition(DrawingCanvas);
                 Point endPt = ClampToCanvas(rawPt);
 
-                _currentDrawable.CompleteDrawing(endPt);
-                DrawingCanvas.Children.Remove(_previewWpfShape);
-                _shapeManager.AddShape(_currentDrawable);
+                bool finished = _currentDrawable.CompleteDrawing(endPt);
+                if (finished)
+                {
+                    DrawingCanvas.Children.Remove(_previewWpfShape);
+                    _shapeManager.AddShape(_currentDrawable);
 
-                _currentDrawable = null;
-                _previewWpfShape = null;
-                DrawingCanvas.ReleaseMouseCapture();
-                UpdateUndoRedoButtons();
+                    _currentDrawable = null;
+                    _previewWpfShape = null;
+                    DrawingCanvas.ReleaseMouseCapture();
+                    UpdateUndoRedoButtons();
+                }
             }
         }
 
         private void Canvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_currentDrawable == null) return;
-            Point rawPt = e.GetPosition(DrawingCanvas);
-            Point pt = ClampToCanvas(rawPt);
+            if (_currentDrawable == null)
+                return;
 
-            bool finished = false;
-            if (_currentDrawable is PolygonShape polygon)
+            if (_currentDrawable.IsMultiStep)
             {
-                polygon.CompleteDrawing(pt);
-                finished = polygon.FinishOnRightClick();
-            }
-            else if (_currentDrawable is PolylineShape polyline)
-            {
-                polyline.CompleteDrawing(pt);
-                finished = polyline.FinishOnRightClick();
-            }
+                Point rawPt = e.GetPosition(DrawingCanvas);
+                Point pt = ClampToCanvas(rawPt);
 
-            if (finished)
-            {
-                DrawingCanvas.Children.Remove(_previewWpfShape);
-                _shapeManager.AddShape(_currentDrawable);
+                _currentDrawable.CompleteDrawing(pt);
 
-                _currentDrawable = null;
-                _previewWpfShape = null;
-                DrawingCanvas.ReleaseMouseCapture();
-                UpdateUndoRedoButtons();
+                bool finished = _currentDrawable.FinishOnRightClick();
+                if (finished)
+                {
+                    DrawingCanvas.Children.Remove(_previewWpfShape);
+                    _shapeManager.AddShape(_currentDrawable);
+
+                    _currentDrawable = null;
+                    _previewWpfShape = null;
+                    DrawingCanvas.ReleaseMouseCapture();
+                    UpdateUndoRedoButtons();
+                }
             }
         }
 

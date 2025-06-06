@@ -5,9 +5,6 @@ using System.Windows.Shapes;
 
 namespace PaintBox.Models
 {
-    /// <summary>
-    /// Базовый класс для фигур: хранит StrokeColor, FillColor, StrokeThickness, Bounds, Points.
-    /// </summary>
     public abstract class ShapeBase : IShape
     {
         public abstract string TypeName { get; }

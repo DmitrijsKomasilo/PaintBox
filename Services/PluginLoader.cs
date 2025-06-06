@@ -7,9 +7,6 @@ using System.Reflection;
 
 namespace PaintBox.Services
 {
-    /// <summary>
-    /// Загрузка плагинов через Reflection: ищем все IShapePlugin в указанной DLL.
-    /// </summary>
     public static class PluginLoader
     {
         public static List<IShapePlugin> LoadPlugins(string dllPath)
@@ -35,14 +32,12 @@ namespace PaintBox.Services
                     }
                     catch
                     {
-                        // Пропускаем типы, которые не удалось создать
                         continue;
                     }
                 }
             }
             catch
             {
-                // Если вообще не удалось загрузить сборку, возвращаем пустой список
             }
 
             return result;
