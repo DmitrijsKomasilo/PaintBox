@@ -34,8 +34,6 @@ namespace PaintBox
             UpdateUndoRedoButtons();
         }
 
-        #region Регистрация фигур и цветов
-
         private void RegisterBuiltInShapes()
         {
             _shapeFactories.Add("Line", () => new LineShape());
@@ -68,10 +66,6 @@ namespace PaintBox
             BtnUndo.IsEnabled = _shapeManager.CanUndo;
             BtnRedo.IsEnabled = _shapeManager.CanRedo;
         }
-
-        #endregion
-
-        #region Обработчики кнопок (Undo/Redo, Save/Load, Plugin)
 
         private void BtnUndo_Click(object sender, RoutedEventArgs e)
         {
@@ -163,10 +157,6 @@ namespace PaintBox
                 }
             }
         }
-
-        #endregion
-
-        #region Обработчики Canvas (Mouse)
 
         private Point ClampToCanvas(Point raw)
         {
@@ -267,7 +257,5 @@ namespace PaintBox
                 }
             }
         }
-
-        #endregion
     }
 }
