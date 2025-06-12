@@ -1,9 +1,13 @@
-﻿using PaintBox.Interfaces;
+﻿using PaintBox.DTO;
+using System.IO;
+using PaintBox.Interfaces;
 using PaintBox.Managers;
 using PaintBox.Models;
 using PaintBox.Services;
 using System;
 using System.Linq;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -108,19 +112,39 @@ namespace PaintBox
                 Filter = "JSON-файлы (*.json)|*.json|Все файлы (*.*)|*.*",
                 DefaultExt = ".json"
             };
-            if (dlg.ShowDialog() == true)
+            if (dlg.ShowDialog() != true)
+                return;
+
+            try
             {
-                try
+                var jsonText = File.ReadAllText(dlg.FileName);
+                var rawList = JsonSerializer.Deserialize<List<ShapeData>>(jsonText,
+                    new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
+                int expectedCount = rawList?.Count ?? 0;
+
+                var shapes = _serializer.Load(dlg.FileName).ToList();
+                int loadedCount = shapes.Count;
+
+                if (loadedCount < expectedCount)
                 {
-                    var shapes = _serializer.Load(dlg.FileName);
-                    _shapeManager.LoadShapes(shapes);
-                    UpdateUndoRedoButtons();
-                    MessageBox.Show("Загрузка завершена успешно.", "Загрузка", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(
+                        $"Предупреждение: из {expectedCount} записей десериализовано только {loadedCount} фигур.\n" +
+                        "Нераспознанные фигуры будут пропущены, остальные отрисованы.",
+                        "Предупреждение при загрузке",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Ошибка при загрузке: " + ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+
+                _shapeManager.LoadShapes(shapes);
+                UpdateUndoRedoButtons();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Ошибка при загрузке: " + ex.Message,
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -246,7 +270,7 @@ namespace PaintBox
 
                 bool finished = _currentDrawable.FinishOnRightClick();
                 if (finished)
-                {
+                     {
                     DrawingCanvas.Children.Remove(_previewWpfShape);
                     _shapeManager.AddShape(_currentDrawable);
 

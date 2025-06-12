@@ -21,24 +21,22 @@ namespace TrapezoidPlugin.Models
 
         public Shape CreatePreviewShape()
         {
-            if (_preview == null)
+            _preview = new Polygon
             {
-                _preview = new Polygon
-                {
-                    Stroke = new SolidColorBrush(StrokeColor),
-                    StrokeThickness = StrokeThickness,
-                    StrokeDashArray = new DoubleCollection { 4, 2 },
-                    Fill = Brushes.Transparent,
-                    Points = new PointCollection()
-                };
-            }
+                Stroke = new SolidColorBrush(StrokeColor),
+                StrokeThickness = StrokeThickness,
+                StrokeDashArray = new DoubleCollection { 4, 2 },
+                Fill = Brushes.Transparent,
+                Points = new PointCollection()
+            };
             return _preview;
         }
 
         public void StartDrawing(Point startPoint)
         {
             _start = startPoint;
-            _preview.Points = new PointCollection { startPoint };
+            Points = new PointCollection();
+            _preview.Points.Clear();
         }
 
         public void UpdateDrawing(Point currentPoint)
@@ -64,7 +62,9 @@ namespace TrapezoidPlugin.Models
         {
             UpdateDrawing(endPoint);
 
-            Bounds = CalculateBounds(_preview.Points);
+            Points = new PointCollection(_preview.Points);
+
+            Bounds = CalculateBounds(Points);
             return true;
         }
 
@@ -79,7 +79,7 @@ namespace TrapezoidPlugin.Models
                 Stroke = new SolidColorBrush(StrokeColor),
                 StrokeThickness = StrokeThickness,
                 Fill = new SolidColorBrush(FillColor),
-                Points = new PointCollection(_preview.Points)
+                Points = new PointCollection(Points)
             };
         }
 
@@ -94,13 +94,15 @@ namespace TrapezoidPlugin.Models
         {
             double minX = double.MaxValue, minY = double.MaxValue;
             double maxX = double.MinValue, maxY = double.MinValue;
+
             foreach (var pt in pts)
             {
                 if (pt.X < minX) minX = pt.X;
-                if (pt.Y < minY) minY = pt.Y;
                 if (pt.X > maxX) maxX = pt.X;
+                if (pt.Y < minY) minY = pt.Y;
                 if (pt.Y > maxY) maxY = pt.Y;
             }
+
             return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
     }

@@ -10,12 +10,9 @@
         FontFamily="Segoe UI"
         FontSize="14">
 
-    <!-- ================================= РЕСУРСЫ ОКНА ================================= -->
     <Window.Resources>
-        <!-- Конвертер из имени цвета (string) в SolidColorBrush -->
         <local:ColorNameToBrushConverter x:Key="ColorNameToBrushConverter"/>
 
-        <!-- Шаблон для элементов ComboBox с цветами: квадратик + название -->
         <DataTemplate x:Key="ColorItemTemplate">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Rectangle Width="16" Height="16"
@@ -31,7 +28,6 @@
 
     <DockPanel>
 
-        <!-- ================================= TOOLBAR ================================= -->
         <ToolBarTray DockPanel.Dock="Top"
                       Background="#DDD"
                       IsLocked="True">
@@ -39,7 +35,6 @@
                      Padding="5"
                      Margin="0,0,0,2">
 
-                <!-- ==== Выбор фигуры ==== -->
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Фигура:"
                                VerticalAlignment="Center"
@@ -49,8 +44,7 @@
                               VerticalAlignment="Center"
                               Margin="0,0,12,0"/>
                 </StackPanel>
-
-                <!-- ==== Толщина линии ==== -->
+                
                 <StackPanel Orientation="Horizontal"
                             Margin="0,0,12,0">
                     <TextBlock Text="Толщина:"
@@ -71,7 +65,6 @@
                                Margin="4,0,0,0"/>
                 </StackPanel>
 
-                <!-- ==== Цвет обводки ==== -->
                 <StackPanel Orientation="Horizontal"
                             Margin="0,0,12,0">
                     <TextBlock Text="Контур:"
@@ -83,7 +76,6 @@
                               ItemTemplate="{StaticResource ColorItemTemplate}"/>
                 </StackPanel>
 
-                <!-- ==== Цвет заливки ==== -->
                 <StackPanel Orientation="Horizontal"
                             Margin="0,0,12,0">
                     <TextBlock Text="Заливка:"
@@ -97,7 +89,6 @@
 
                 <Separator/>
 
-                <!-- ==== Кнопки: Undo / Redo ==== -->
                 <Button Name="BtnUndo"
                         Content="↺ Undo"
                         Width="80"
@@ -117,7 +108,6 @@
 
                 <Separator/>
 
-                <!-- ==== Кнопки: Сохранить / Загрузить ==== -->
                 <Button Name="BtnSave"
                         Content="💾 Сохранить"
                         Width="90"
@@ -137,7 +127,6 @@
 
                 <Separator/>
 
-                <!-- ==== Кнопка: Загрузить плагин ==== -->
                 <Button Name="BtnLoadPlugin"
                         Content="🔌 Плагин"
                         Width="80"
@@ -150,7 +139,6 @@
         </ToolBarTray>
 
 
-        <!-- ================================= ОБЛАСТЬ РИСОВАНИЯ ================================= -->
         <Border BorderBrush="#CCC"
                 BorderThickness="1"
                 CornerRadius="4"
